@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ICICI - Mini Bank (Singleton BankServer)</title>
+  <style>
+    /* Basic reset */
+    *{box-sizing:border-box;margin:0;padding:0;font-family:Inter, system-ui, Arial, sans-serif}
+    body{background:linear-gradient(180deg,#f6f9fc,#eef3f8);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px}
+
+    .container{width:100%;max-width:980px;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(27,38,59,0.08);overflow:hidden}
+    header{display:flex;align-items:center;gap:18px;padding:20px 28px;border-bottom:1px solid #eef2f7}
+    .brand{display:flex;flex-direction:column}
+    .brand h1{font-size:20px;color:#0b2447}
+    .brand small{color:#6b7280}
+
+    .main{display:grid;grid-template-columns:320px 1fr;gap:20px;padding:22px}
+    .card{background:#fbfdff;border-radius:10px;padding:14px;border:1px solid #eef2f7}
+
+    /* left column - user panel */
+    .left{display:flex;flex-direction:column;gap:14px}
+    .profile{display:flex;gap:12px;align-items:center}
+    .avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#e6f0ff,#cfe6ff);display:flex;align-items:center;justify-content:center;color:#0b2447;font-weight:700}
+    .user-actions{display:flex;flex-direction:column;gap:8px}
+    .btn{display:inline-block;padding:10px 12px;border-radius:8px;border:0;background:#0b5cff;color:white;cursor:pointer}
+    .btn.ghost{background:transparent;color:#0b5cff;border:1px solid #dbe8ff}
+
+    /* forms */
+    form{display:flex;flex-direction:column;gap:8px}
+    label{font-size:13px;color:#374151}
+    input,select{padding:10px;border-radius:8px;border:1px solid #e6eef7}
+
+    /* right column - operations */
+    .right{display:flex;flex-direction:column;gap:12px}
+    .grid-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #f3f6fb;text-align:left;font-size:13px}
+    .muted{color:#6b7280;font-size:13px}
+
+    footer{padding:12px 22px;border-top:1px solid #eef2f7;text-align:center;color:#6b7280}
+
+    /* responsive */
+    @media (max-width:880px){.main{grid-template-columns:1fr} .left{order:2} .right{order:1}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div style="width:46px;height:46px;border-radius:8px;background:linear-gradient(90deg,#ff6b6b,#ffb86b);display:flex;align-items:center;justify-content:center;color:white;font-weight:700">IC</div>
+      <div class="brand">
+        <h1>ICICI - Mini Bank</h1>
+        <small>Demo app: Singleton BankServer manages all transactions</small>
+      </div>
+    </header>
+
+    <div class="main">
+      <aside class="left">
+        <div class="card profile">
+          <div class="avatar">F</div>
+          <div style="flex:1">
+            <div style="font-weight:700">Faiza Iram</div>
+            <div class="muted">Customer ID: <span id="customerId">-</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <button class="btn" id="btn-create-account">Create Account</button>
+            <button class="btn ghost" id="btn-load-sample">Load Sample</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:8px">Accounts</h3>
+          <div id="accounts-list" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:8px">Quick Actions</h3>
+          <div style="display:flex;gap:8px">
+            <button class="btn" id="btn-deposit">Deposit</button>
+            <button class="btn" id="btn-withdraw">Withdraw</button>
+            <button class="btn ghost" id="btn-transfer">Transfer</button>
+          </div>
+        </div>
+
+      </aside>
+
+      <section class="right">
+        <div class="card">
+          <h3>Selected Account</h3>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="muted">Account No</div>
+              <div style="font-weight:700;font-size:18px" id="sel-acc-no">-</div>
+            </div>
+            <div>
+              <div class="muted">Available Balance</div>
+              <div style="font-weight:700;font-size:18px" id="sel-acc-bal">-</div>
+            </div>
+            <div>
+              <div class="muted">Type</div>
+              <div id="sel-acc-type">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card grid-two">
+          <div>
+            <h4>Perform Transaction</h4>
+            <form id="tx-form">
+              <label for="tx-type">Type</label>
+              <select id="tx-type"><option value="deposit">Deposit</option><option value="withdraw">Withdraw</option></select>
+              <label for="tx-amount">Amount</label>
+              <input id="tx-amount" type="number" step="0.01" min="0" placeholder="0.00" required />
+              <label for="tx-note">Note (optional)</label>
+              <input id="tx-note" type="text" placeholder="Reason or note" />
+              <button class="btn" style="margin-top:8px" type="submit">Submit</button>
+            </form>
+          </div>
+
+          <div>
+            <h4>Transfer</h4>
+            <form id="transfer-form">
+              <label for="to-account">To Account</label>
+              <select id="to-account"></select>
+              <label for="transfer-amount">Amount</label>
+              <input id="transfer-amount" type="number" step="0.01" min="0" placeholder="0.00" required />
+              <label for="transfer-note">Note</label>
+              <input id="transfer-note" type="text" placeholder="Transfer note" />
+              <button class="btn" style="margin-top:8px" type="submit">Transfer</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <h4>Transaction History</h4>
+          <div style="max-height:260px;overflow:auto">
+            <table>
+              <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Note</th></tr></thead>
+              <tbody id="tx-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+    <footer>Demo only — not affiliated with ICICI Bank. Uses a singleton BankServer (JS) to manage accounts and transactions.</footer>
+  </div>
+
+  <script>
+    /*************************************************************************
+     * Singleton BankServer implementation using closure to make constructor
+     * effectively private. Consumers must call BankServer.getInstance() to get
+     * the single global instance.
+     *************************************************************************/
+
+    const BankServer = (function(){
+      // Private symbol used as secret key for constructing the class
+      const _secret = Symbol('BankServerSecret');
+
+      // Private class - not exposed directly
+      class BankServerCore {
+        constructor(secret){
+          if(secret !== _secret) throw new Error('BankServer constructor is private. Use getInstance()');
+          this.accounts = {}; // accountNo -> {name,type,balance,history}
+          this.nextAccount = 10010001;
+          this.customers = {}; // customerId -> [accountNos]
+        }
+
+        createAccount(customerId, holderName, type='Savings', initial=0){
+          const accNo = String(this.nextAccount++);
+          this.accounts[accNo] = {accountNo:accNo, holderName, type, balance: parseFloat(initial)||0, history: []};
+          if(!this.customers[customerId]) this.customers[customerId] = [];
+          this.customers[customerId].push(accNo);
+          this._pushHistory(accNo, 'Account Created', parseFloat(initial)||0, this.accounts[accNo].balance, `Opened ${type}`);
+          this._persist();
+          return accNo;
+        }
+
+        getAccountsOfCustomer(customerId){
+          return (this.customers[customerId]||[]).map(a=>this.accounts[a]);
+        }
+
+        getAccount(accNo){
+          return this.accounts[accNo] || null;
+        }
+
+        deposit(accNo, amount, note='Deposit'){
+          amount = Number(amount);
+          if(!(accNo in this.accounts)) throw new Error('Account not found');
+          if(isNaN(amount) || amount<=0) throw new Error('Invalid amount');
+          this.accounts[accNo].balance += amount;
+          this._pushHistory(accNo,'Deposit',amount,this.accounts[accNo].balance,note);
+          this._persist();
+          return this.accounts[accNo].balance;
+        }
+
+        withdraw(accNo, amount, note='Withdraw'){
+          amount = Number(amount);
+          if(!(accNo in this.accounts)) throw new Error('Account not found');
+          if(isNaN(amount) || amount<=0) throw new Error('Invalid amount');
+          if(this.accounts[accNo].balance < amount) throw new Error('Insufficient funds');
+          this.accounts[accNo].balance -= amount;
+          this._pushHistory(accNo,'Withdraw',amount,this.accounts[accNo].balance,note);
+          this._persist();
+          return this.accounts[accNo].balance;
+        }
+
+        transfer(fromAcc, toAcc, amount, note='Transfer'){
+          amount = Number(amount);
+          if(!(fromAcc in this.accounts)) throw new Error('Source account not found');
+          if(!(toAcc in this.accounts)) throw new Error('Destination account not found');
+          if(isNaN(amount) || amount<=0) throw new Error('Invalid amount');
+          if(this.accounts[fromAcc].balance < amount) throw new Error('Insufficient funds');
+          this.accounts[fromAcc].balance -= amount;
+          this.accounts[toAcc].balance += amount;
+          this._pushHistory(fromAcc,'Transfer Out',amount,this.accounts[fromAcc].balance,`To ${toAcc} - ${note}`);
+          this._pushHistory(toAcc,'Transfer In',amount,this.accounts[toAcc].balance,`From ${fromAcc} - ${note}`);
+          this._persist();
+          return {fromBalance:this.accounts[fromAcc].balance,toBalance:this.accounts[toAcc].balance};
+        }
+
+        _pushHistory(accNo, type, amount, balance, note){
+          const rec = {date:(new Date()).toLocaleString(), type, amount: Number(amount).toFixed(2), balance: Number(balance).toFixed(2), note};
+          this.accounts[accNo].history.unshift(rec);
+          // keep history reasonable length
+          if(this.accounts[accNo].history.length>200) this.accounts[accNo].history.pop();
+        }
+
+        getHistory(accNo){
+          return (this.accounts[accNo] && this.accounts[accNo].history) ? this.accounts[accNo].history : [];
+        }
+
+        _persist(){
+          // simple persistence for demo using localStorage
+          try{
+            localStorage.setItem('mini_bank_data', JSON.stringify({accounts:this.accounts,customers:this.customers,nextAccount:this.nextAccount}));
+          }catch(e){console.warn('Could not persist data',e)}
+        }
+
+        _load(){
+          try{
+            const raw = localStorage.getItem('mini_bank_data');
+            if(raw){
+              const parsed = JSON.parse(raw);
+              this.accounts = parsed.accounts || {};
+              this.customers = parsed.customers || {};
+              this.nextAccount = parsed.nextAccount || this.nextAccount;
+            }
+          }catch(e){console.warn('Could not load data',e)}
+        }
+
+      }
+
+      // Single exposed object with getInstance() only
+      let instance = null;
+      return {
+        getInstance: function(){
+          if(!instance){
+            instance = new BankServerCore(_secret);
+            instance._load();
+          }
+          return instance;
+        }
+      };
+    })();
+
+    /*************************************************************************
+     * UI wiring below — demonstrates usage of the singleton BankServer
+     *************************************************************************/
+
+    const server = BankServer.getInstance();
+
+    // Simple demo customer id
+    const CUSTOMER_ID = 'CUST-1001';
+    document.getElementById('customerId').textContent = CUSTOMER_ID;
+
+    // DOM elements
+    const accountsListEl = document.getElementById('accounts-list');
+    const selAccNoEl = document.getElementById('sel-acc-no');
+    const selAccBalEl = document.getElementById('sel-acc-bal');
+    const selAccTypeEl = document.getElementById('sel-acc-type');
+    const txTableBody = document.getElementById('tx-table-body');
+    const toAccountSelect = document.getElementById('to-account');
+
+    let selectedAccount = null;
+
+    function renderAccounts(){
+      const accounts = server.getAccountsOfCustomer(CUSTOMER_ID);
+      accountsListEl.innerHTML = '';
+      toAccountSelect.innerHTML = '';
+      if(accounts.length===0){
+        accountsListEl.innerHTML = '<div class="muted">No accounts yet. Create one.</div>';
+        selAccNoEl.textContent = '-'; selAccBalEl.textContent = '-'; selAccTypeEl.textContent = '-';
+        return;
+      }
+      accounts.forEach(acc=>{
+        const accEl = document.createElement('div');
+        accEl.style.display='flex'; accEl.style.justifyContent='space-between'; accEl.style.alignItems='center';
+        accEl.style.padding='8px'; accEl.style.borderRadius='8px'; accEl.style.border='1px solid #f0f6ff';
+        accEl.innerHTML = `<div style="flex:1"><div style='font-weight:700'>${acc.accountNo}</div><div class='muted'>${acc.holderName} • ${acc.type}</div></div><div style='text-align:right'><div style='font-weight:700'>₹ ${Number(acc.balance).toFixed(2)}</div><button class='btn ghost' data-acc='${acc.accountNo}' style='margin-top:6px'>Select</button></div>`;
+        accountsListEl.appendChild(accEl);
+
+        // add to transfer dropdown
+        const opt = document.createElement('option'); opt.value = acc.accountNo; opt.textContent = `${acc.accountNo} • ₹ ${Number(acc.balance).toFixed(2)}`;
+        toAccountSelect.appendChild(opt);
+      });
+
+      // wire select buttons
+      accountsListEl.querySelectorAll('button[data-acc]').forEach(btn=>btn.addEventListener('click',()=>{
+        selectAccount(btn.getAttribute('data-acc'));
+      }));
+
+      // if no selected account set first
+      if(!selectedAccount && accounts.length>0) selectAccount(accounts[0].accountNo);
+    }
+
+    function selectAccount(accNo){
+      const acc = server.getAccount(accNo);
+      if(!acc) return;
+      selectedAccount = accNo;
+      selAccNoEl.textContent = acc.accountNo;
+      selAccBalEl.textContent = '₹ ' + Number(acc.balance).toFixed(2);
+      selAccTypeEl.textContent = acc.type;
+      renderHistory();
+    }
+
+    function renderHistory(){
+      txTableBody.innerHTML = '';
+      if(!selectedAccount) return;
+      const history = server.getHistory(selectedAccount);
+      if(history.length===0){
+        txTableBody.innerHTML = '<tr><td colspan="5" class="muted">No transactions yet.</td></tr>';
+        return;
+      }
+      history.forEach(h=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${h.date}</td><td>${h.type}</td><td>₹ ${h.amount}</td><td>₹ ${h.balance}</td><td>${h.note}</td>`;
+        txTableBody.appendChild(tr);
+      });
+    }
+
+    // forms
+    document.getElementById('tx-form').addEventListener('submit',function(e){
+      e.preventDefault();
+      if(!selectedAccount) return alert('Select an account first');
+      const type = document.getElementById('tx-type').value;
+      const amount = parseFloat(document.getElementById('tx-amount').value);
+      const note = document.getElementById('tx-note').value || (type==='deposit' ? 'Deposit' : 'Withdraw');
+      try{
+        if(type==='deposit') server.deposit(selectedAccount, amount, note);
+        else server.withdraw(selectedAccount, amount, note);
+        selectAccount(selectedAccount); // refresh
+        renderAccounts();
+        this.reset();
+        alert('Transaction successful');
+      }catch(err){alert(err.message)}
+    });
+
+    document.getElementById('transfer-form').addEventListener('submit',function(e){
+      e.preventDefault();
+      if(!selectedAccount) return alert('Select source account first');
+      const toAcc = document.getElementById('to-account').value;
+      const amount = parseFloat(document.getElementById('transfer-amount').value);
+      const note = document.getElementById('transfer-note').value || 'Transfer';
+      try{
+        if(toAcc === selectedAccount) throw new Error('Cannot transfer to the same account');
+        server.transfer(selectedAccount,toAcc,amount,note);
+        renderAccounts();
+        selectAccount(selectedAccount);
+        this.reset();
+        alert('Transfer completed');
+      }catch(err){alert(err.message)}
+    });
+
+    // quick actions
+    document.getElementById('btn-create-account').addEventListener('click',()=>{
+      const name = prompt('Account holder name', 'Faiza Iram');
+      if(!name) return;
+      const type = prompt('Account type (Savings/Current)', 'Savings') || 'Savings';
+      const init = parseFloat(prompt('Initial deposit amount', '1000')) || 0;
+      const accNo = server.createAccount(CUSTOMER_ID, name, type, init);
+      alert('Account created: ' + accNo);
+      renderAccounts();
+    });
+
+    document.getElementById('btn-load-sample').addEventListener('click',()=>{
+      // create two sample accounts if none exist
+      const existing = server.getAccountsOfCustomer(CUSTOMER_ID);
+      if(existing.length===0){
+        server.createAccount(CUSTOMER_ID,'Faiza Iram','Savings',2500);
+        server.createAccount(CUSTOMER_ID,'Faiza Iram','Current',1200);
+        alert('Sample accounts created');
+        renderAccounts();
+      }else alert('Sample already exists or accounts present');
+    });
+
+    document.getElementById('btn-deposit').addEventListener('click',()=>{
+      document.getElementById('tx-type').value='deposit'; document.getElementById('tx-amount').focus();
+    });
+    document.getElementById('btn-withdraw').addEventListener('click',()=>{
+      document.getElementById('tx-type').value='withdraw'; document.getElementById('tx-amount').focus();
+    });
+    document.getElementById('btn-transfer').addEventListener('click',()=>{
+      document.getElementById('transfer-amount').focus();
+    });
+
+    // initial render
+    renderAccounts();
+
+  </script>
+</body>
+</html>
